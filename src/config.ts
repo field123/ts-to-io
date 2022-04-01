@@ -29,10 +29,12 @@ export interface TsToIoConfig {
   followImports: boolean;
   includeHeader: boolean;
   fileNames: string[];
+  exportAll: boolean;
 }
 
 export const defaultConfig: TsToIoConfig = {
   followImports: false,
   includeHeader: true,
+  exportAll: false,
   fileNames: []
 };

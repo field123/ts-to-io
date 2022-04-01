@@ -121,7 +121,8 @@ function handleDeclaration(
     | ts.TypeAliasDeclaration
     | ts.InterfaceDeclaration
     | ts.VariableStatement,
-  checker: ts.TypeChecker
+  checker: ts.TypeChecker,
+  shouldExport = false
 ) {
   let symbol, type;
   try {
@@ -137,7 +138,10 @@ function handleDeclaration(
       symbol = checker.getSymbolAtLocation(node.name);
       type = checker.getTypeAtLocation(node);
     }
-    return `const ${symbol!.name} = ` + processType(checker)(type);
+    return (
+      `${shouldExport ? "export " : ""}const ${symbol!.name} = ` +
+      processType(checker)(type)
+    );
   } catch (e) {
     return `// Error: Failed to generate a codec for ${
       symbol ? symbol.name : ""
@@ -159,7 +163,7 @@ const visit =
       ts.isVariableStatement(node) ||
       ts.isInterfaceDeclaration(node)
     ) {
-      result.push(handleDeclaration(node, checker));
+      result.push(handleDeclaration(node, checker, config.exportAll));
     } else if (ts.isModuleDeclaration(node)) {
       ts.forEachChild(node, visit(checker, config, result));
     }
@@ -219,9 +223,10 @@ export function getValidatorsFromString(
 /**
  * If a config is provided it used otherwise looks for creates one based on node call.
  */
-export function getValidatorsFromFileNames(config?: TsToIoConfig) {
-  const checkedConfig = !config ? attemptGetCliConfig() : config;
-
+export function getValidatorsFromFileNames(config?: Partial<TsToIoConfig>) {
+  const checkedConfig = !config
+    ? attemptGetCliConfig()
+    : { ...defaultConfig, ...config };
   const program = ts.createProgram(checkedConfig.fileNames, compilerOptions);
   const checker = program.getTypeChecker();
   const result = checkedConfig.includeHeader ? [getImports()] : [];
